@@ -19,7 +19,7 @@ const config = {
     errorLogPath: path.join(__dirname, './error.log'),
     maximumErrorsPerInterval: 20,
     errorTrackingIntervalDurationInMs: 24 * 60 * 60 * 1000,
-    slackChannelName: "testing-tool",
+    slackChannelName: "C08B1E5CT2P",
 };
 
 const corsOptions = {
