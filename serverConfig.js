@@ -17,8 +17,8 @@ const config = {
     testsMainDataPath: path.join(__dirname, './acTestData'),
     archivedTestsDataPath: path.join(__dirname, './archivedTests'),
     errorLogPath: path.join(__dirname, './error.log'),
-    maximumErrorsPerInterval: 20,
-    errorTrackingIntervalDurationInMs: 24 * 60 * 60 * 1000,
+    maximumErrorsPerInterval: 5,
+    errorTrackingIntervalDurationInMs: 10 * 60 * 1000,
     slackChannelName: "C08B1E5CT2P",
 };
 
