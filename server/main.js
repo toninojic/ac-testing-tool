@@ -3,6 +3,7 @@ const getTest = require('../routes/getTest');
 const getAllTest = require('../routes/getAllTests');
 const updateTest = require('../routes/updateTest');
 const deleteTest = require('../routes/deleteTest');
+const testMonitoring = require('../routes/testMonitoring');
 const healthCheck = require('../routes/healthCheck');
 const getLogs = require('../routes/getLogs');
 const { accessLogger } = require('../util/logger');
@@ -22,6 +23,7 @@ app.use(getTest);
 app.use(getAllTest);
 app.use(updateTest);
 app.use(deleteTest);
+app.use(testMonitoring);
 app.use(healthCheck);
 app.use(getLogs);
 
