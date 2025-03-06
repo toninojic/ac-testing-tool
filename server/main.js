@@ -1,5 +1,6 @@
 const { app, port, router } = require('../serverConfig');
 const getTest = require('../routes/getTest');
+const previewTest = require('../routes/previewTest');
 const getAllTest = require('../routes/getAllTests');
 const updateTest = require('../routes/updateTest');
 const deleteTest = require('../routes/deleteTest');
@@ -20,6 +21,7 @@ if (process.env.NODE_ENV != 'production') {
 }
 
 app.use(getTest);
+app.use(previewTest);
 app.use(getAllTest);
 app.use(updateTest);
 app.use(deleteTest);

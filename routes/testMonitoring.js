@@ -6,6 +6,8 @@ const { slackMess } = require('../util/slackMess');
 const errorCountsMap = new Map();
 const exceededLimitSet = new Set();
 
+const API_TOKEN = process.env.API_TOKEN || 'your-secret-token-here';
+
 const resetErrorCount = () => {
     errorCountsMap.clear();
     exceededLimitSet.clear();
@@ -16,6 +18,14 @@ setInterval(resetErrorCount, config.errorTrackingIntervalDurationInMs);
 const errorMessages = {
     1: 'Function execution failed',
     2: 'Selector not found'
+};
+
+const authenticateRequest = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || authHeader !== `Bearer ${API_TOKEN}`) {
+        return res.status(403).json({ error: 'Forbidden: Invalid API token' });
+    }
+    next();
 };
 
 router.get('/test-monitor', async (req, res) => {
