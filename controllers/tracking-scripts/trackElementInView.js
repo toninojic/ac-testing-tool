@@ -1,44 +1,32 @@
-function trackElementInView(trackingGoal, testData, variationServed) {
+function trackElementInView(trackingGoal, _testData, variationServed) {
     const { ac_test_goal, ac_test_goal_match, ac_test_element_name } = trackingGoal;
-    const { analitycsID } = testData;
 
     if (ac_test_goal !== 'css_selector' || ac_test_goal_match === '') {
         return '';
     }
 
+    const eventName = `AB_${variationServed}_${ac_test_element_name}`;
+    const flagName = `data-ac-bound-in-view-${variationServed}-${ac_test_element_name}`;
 
+    const script = `
+        const acInViewObserver_${variationServed}_${ac_test_element_name.replace(/[^a-zA-Z0-9_]/g, '_')} = new IntersectionObserver(function(entries, observer) {
+            entries.forEach(function(entry) {
+                if (!entry.isIntersecting) {
+                    return;
+                }
 
-  const script = `
-        let scrollEventSent = false;
-
-        function isInViewport(element) {
-            const elementTop = element.offsetTop;
-            const elementBottom = elementTop + element.offsetHeight;
-            const viewportTop = window.pageYOffset;
-            const viewportBottom = viewportTop + window.innerHeight;
-            return elementBottom > viewportTop && elementTop < viewportBottom;
-        }
-
-        window.addEventListener('resize', function() {
-            if (!scrollEventSent && isInViewport(document.querySelector('${ac_test_goal_match}'))) {
-                gtag('event', 'AB_${variationServed}_${ac_test_element_name}', {
-                    'send_to': '${analitycsID}'
-                });
-                scrollEventSent = true;
-            }
+                window.acSendTrackingEvent('${eventName}');
+                observer.unobserve(entry.target);
+            });
         });
 
-        window.addEventListener('scroll', function() {
-            if (!scrollEventSent && isInViewport(document.querySelector('${ac_test_goal_match}'))) {
-                gtag('event', 'AB_${variationServed}_${ac_test_element_name}', {
-                    'send_to': '${analitycsID}'
-                });
-                scrollEventSent = true;
-            }
+        window.acObserveElements('${ac_test_goal_match}', '${flagName}', function(element) {
+            window.acSendTrackingEvent('${eventName}_Appear');
+            acInViewObserver_${variationServed}_${ac_test_element_name.replace(/[^a-zA-Z0-9_]/g, '_')}.observe(element);
         });
     `;
 
-  return script;
+    return script;
 }
 
 module.exports = trackElementInView;
