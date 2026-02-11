@@ -23,9 +23,12 @@ function defaultTrackingScript(testData, variationServed) {
             if (window.acTrackingConfig.trackingScriptType === 'dataLayer') {
                 window.dataLayer = window.dataLayer || [];
                 window.dataLayer.push({
-                    event: eventName,
-                    send_to: window.acTrackingConfig.analitycsID,
-                    event_category: 'ab_test'
+                    event: 'GA4event',
+                    'ga4-event-name': 'cro_event',
+                    'ga4-event-p1-name': 'event_category',
+                    'ga4-event-p1-value': eventName,
+                    'ga4-event-p2-name': 'event_label',
+                    'ga4-event-p2-value': ''
                 });
                 return;
             }
