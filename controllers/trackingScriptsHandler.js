@@ -39,7 +39,7 @@ const trackingScriptsHandler = (trackingGoals, currentVariation, testData = {}) 
             concatenatedScripts += trackElementLink(goal, trackingConfig, variationServed);
             break;
         default:
-            console.error('Unknown tracking goal type:', goal.ac_test_goal_type);
+            break;
         }
     }
 

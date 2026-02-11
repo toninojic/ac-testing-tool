@@ -12,7 +12,7 @@ const { createClient } = require('redis');
 dotenv.config();
 
 const config = {
-    testCheckerInterval: "*/10 * * * * *",
+    testCheckerInterval: "0 */30 * * * *",
     maximumReqBodySize: '5mb',
     testsMainDataPath: path.join(__dirname, './acTestData'),
     archivedTestsDataPath: path.join(__dirname, './archivedTests'),
