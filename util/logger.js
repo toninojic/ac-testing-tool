@@ -1,4 +1,5 @@
-const { fs, path } = require('../serverConfig');
+const fs = require('fs');
+const path = require('path');
 const winston = require('winston');
 require('winston-daily-rotate-file');
 

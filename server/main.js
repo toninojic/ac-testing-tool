@@ -1,4 +1,4 @@
-const { app, port, router } = require('../serverConfig');
+const { app, port } = require('../serverConfig');
 const getTest = require('../routes/getTest');
 const previewTest = require('../routes/previewTest');
 const getAllTest = require('../routes/getAllTests');
@@ -7,18 +7,10 @@ const deleteTest = require('../routes/deleteTest');
 const testMonitoring = require('../routes/testMonitoring');
 const healthCheck = require('../routes/healthCheck');
 const getLogs = require('../routes/getLogs');
-const { accessLogger } = require('../util/logger');
+const logRequest = require('../middlewares/logRequest');
 
 const checkingTests = require('../cronJobs/checkingTests');
-if (process.env.NODE_ENV != 'production') {
-    app.use((req, res, next) => {
-        const referrer = req.get('Referer') || 'No referrer';
-        const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
-
-        accessLogger.info(`${req.method} REQUEST FROM XF IP ${clientIP}, URL ${referrer}`);
-        next();
-    });
-}
+app.use(logRequest);
 
 app.use(getTest);
 app.use(previewTest);

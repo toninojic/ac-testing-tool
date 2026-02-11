@@ -1,15 +1,42 @@
 const { errorLogger } = require('../util/logger');
+const { getClientIp } = require('./requestMetadata');
 
-const authMiddleware = (req, res, next) => {
+const getRequiredEnv = (variableName) => {
+    const variableValue = process.env[variableName];
+
+    if (!variableValue) {
+        throw new Error(`Missing required environment variable: ${variableName}`);
+    }
+
+    return variableValue;
+};
+
+const ACCESS_TOKEN = getRequiredEnv('ACCESS_TOKEN');
+const API_TOKEN = getRequiredEnv('API_TOKEN');
+
+const requirePluginToken = (req, res, next) => {
     const pluginToken = req.headers['x-plugin-token'];
-    const clientIP = req.headers['x-forwarded-for'] || req.ip;
+    const clientIP = getClientIp(req);
 
-    if (pluginToken !== process.env.ACCESS_TOKEN) {
-        errorLogger.error(`/get-logs route access denied due to wrong access token. REQUEST FROM IP ${clientIP}`);
+    if (pluginToken !== ACCESS_TOKEN) {
+        errorLogger.error(`${req.path} route access denied due to wrong access token. REQUEST FROM IP ${clientIP}`);
         return res.status(403).send('Forbidden Access!');
     }
 
     next();
-}
+};
 
-module.exports = authMiddleware;
+const requireBearerToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+
+    if (!authHeader || authHeader !== `Bearer ${API_TOKEN}`) {
+        return res.status(403).json({ error: 'Forbidden: Invalid API token' });
+    }
+
+    next();
+};
+
+module.exports = {
+    requirePluginToken,
+    requireBearerToken
+};

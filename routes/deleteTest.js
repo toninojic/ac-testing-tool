@@ -1,13 +1,14 @@
-const { router, config } = require('../serverConfig');
+const express = require('express');
+const router = express.Router();
 const { Test } = require('../models/Test');
 const { errorLogger } = require('../util/logger');
+const { requirePluginToken } = require('../middlewares/authMiddleware');
+const { getClientIp, getReferrer } = require('../middlewares/requestMetadata');
 
-router.delete('/delete-test', async (req, res) => {
+router.delete('/delete-test', requirePluginToken, async (req, res) => {
     const requestBody = req.body;
-    const referrer = req.get('Referer') || 'No referrer';
-    const clientIP = req.headers['x-forwarded-for'] || req.ip;
-    const PLUGIN_TOKEN = process.env.ACCESS_TOKEN;
-    const pluginToken = req.headers['x-plugin-token'];
+    const referrer = getReferrer(req);
+    const clientIP = getClientIp(req);
 
     const {
         id: testID,
@@ -16,11 +17,6 @@ router.delete('/delete-test', async (req, res) => {
         clientName: clientName,
         testStatus: testStatus
     } = requestBody;
-
-    if (pluginToken !== PLUGIN_TOKEN) {
-        errorLogger.error(`/delete-test route access denied due to wrong access token. REQUEST FROM IP ${clientIP}`);
-        return res.status(403).send('Forbidden Access!');
-    }
 
     if (clientName === '' || testID === '') {
         errorLogger.error(`${req.method} REQUEST FROM IP ${clientIP}, URL ${referrer}, ERROR: You need to set up valid test data`);

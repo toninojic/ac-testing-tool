@@ -1,5 +1,4 @@
 const express = require('express');
-const router = express.Router();
 const path = require('path');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -10,6 +9,17 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const { createClient } = require('redis');
 
 dotenv.config();
+
+
+const getRequiredEnv = (variableName) => {
+    const variableValue = process.env[variableName];
+
+    if (!variableValue) {
+        throw new Error(`Missing required environment variable: ${variableName}`);
+    }
+
+    return variableValue;
+};
 
 const config = {
     testCheckerInterval: "0 */30 * * * *",
@@ -23,7 +33,7 @@ const config = {
 };
 
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN.split(','),
+    origin: getRequiredEnv('CORS_ORIGIN').split(','),
     optionsSuccessStatus: 200
 };
 
@@ -33,7 +43,7 @@ app.use(bodyParser.json({ limit: config.maximumReqBodySize }));
 app.use(device.capture());
 app.use(cors(corsOptions));
 
-const uri = `mongodb+srv://antonijenojic01:${process.env.DB_PASSWORD}@testingtool.6oc6s.mongodb.net/?retryWrites=true&w=majority&appName=TestingTool`;
+const uri = `mongodb+srv://antonijenojic01:${getRequiredEnv('DB_PASSWORD')}@testingtool.6oc6s.mongodb.net/?retryWrites=true&w=majority&appName=TestingTool`;
 
 const client = new MongoClient(uri, {
     serverApi: {
@@ -58,7 +68,7 @@ connectToDatabase();
 
 // Redis connection setup
 const redisClient = createClient({
-    url: process.env.REDIS_URI,
+    url: getRequiredEnv('REDIS_URI'),
 });
 
 redisClient.on('error', (err) => console.error('Redis connection error:', err));
@@ -78,9 +88,8 @@ connectToRedis();
 const serverConfig = {
     app,
     fs,
-    router,
     path,
-    port: process.env.PORT,
+    port: getRequiredEnv('PORT'),
     slackSigningSecret: process.env.SLACK_SIGNING_SECRET,
     slackBotToken: process.env.SLACK_BOT_TOKEN,
     enviromentVar: process.env.ENVIRONMENT,
