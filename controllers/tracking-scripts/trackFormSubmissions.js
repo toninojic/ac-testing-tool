@@ -1,26 +1,19 @@
-function trackFormSubmissions(trackingGoal, testData, variationServed) {
-    const { analitycsID } = testData;
+function trackFormSubmissions(trackingGoal, _testData, variationServed) {
     const { ac_test_goal, ac_test_goal_match, ac_test_element_name } = trackingGoal;
 
     if (ac_test_goal !== 'css_selector' || ac_test_goal_match === '') {
         return '';
     }
 
-
+    const eventName = `AB_${variationServed}_${ac_test_element_name}`;
+    const flagName = `data-ac-bound-form-submit-${variationServed}-${ac_test_element_name}`;
 
     const script = `
-        document.addEventListener('DOMContentLoaded', () => {
-            const interval = setInterval(() => {
-            const submittedMessage = document.querySelector('${ac_test_goal_match}');
-            if (submittedMessage) {
-                clearInterval(interval);
-                gtag('event', 'AB_${variationServed}_${ac_test_element_name}', {
-                'send_to': '${analitycsID}'
-                });
-            }
-            }, 1000);
+        window.acObserveElements('${ac_test_goal_match}', '${flagName}', function() {
+            window.acSendTrackingEvent('${eventName}_Appear');
+            window.acSendTrackingEvent('${eventName}');
         });
-        `;
+    `;
 
     return script;
 }

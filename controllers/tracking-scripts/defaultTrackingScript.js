@@ -1,40 +1,86 @@
-function defaultTrackingScript( testData, variationServed) {
-    const { analitycsID, defaultTrackingName } = testData;
+function defaultTrackingScript(testData, variationServed) {
+    const {
+        analitycsID,
+        defaultTrackingName,
+        trackingScriptType = 'gtag'
+    } = testData;
 
-    if (analitycsID === '') {
+    if (!analitycsID || !defaultTrackingName) {
         return '';
     }
 
     const script = `
-        if (typeof gtag !== 'function') {
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-            dataLayer.push(arguments);
-        }
-        gtag('js', new Date());
-        gtag('config', '${analitycsID}', { 'send_page_view': false });
-        }
+        window.acTrackingConfig = {
+            analitycsID: '${analitycsID}',
+            trackingScriptType: '${trackingScriptType}'
+        };
 
-        function waitForGtag(callback) {
-        if (typeof gtag !== 'undefined') {
-            callback();
-        } else {
-            setTimeout(function () {
-            waitForGtag(callback);
-            }, 100);
-        }
-        }
-        waitForGtag(() => {
-        gtag('event', 'AB_${variationServed}_${defaultTrackingName}_Visit', {
-            'send_to': '${analitycsID}'
-        });
-        });
+        window.acSendTrackingEvent = function(eventName) {
+            if (!eventName) {
+                return;
+            }
+
+            if (window.acTrackingConfig.trackingScriptType === 'dataLayer') {
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({
+                    event: eventName,
+                    send_to: window.acTrackingConfig.analitycsID,
+                    event_category: 'ab_test'
+                });
+                return;
+            }
+
+            window.dataLayer = window.dataLayer || [];
+            if (typeof window.gtag !== 'function') {
+                window.gtag = function() {
+                    window.dataLayer.push(arguments);
+                };
+                window.gtag('js', new Date());
+                window.gtag('config', window.acTrackingConfig.analitycsID, { send_page_view: false });
+            }
+
+            window.gtag('event', eventName, {
+                send_to: window.acTrackingConfig.analitycsID
+            });
+        };
+
+        window.acObserveElements = function(selector, boundFlag, onElementDetected) {
+            if (!selector || typeof onElementDetected !== 'function') {
+                return;
+            }
+
+            const processElements = function() {
+                document.querySelectorAll(selector).forEach(function(element) {
+                    if (element.hasAttribute(boundFlag)) {
+                        return;
+                    }
+
+                    element.setAttribute(boundFlag, 'true');
+                    onElementDetected(element);
+                });
+            };
+
+            processElements();
+
+            const observer = new MutationObserver(function() {
+                processElements();
+            });
+
+            const root = document.documentElement || document.body;
+            if (!root) {
+                return;
+            }
+
+            observer.observe(root, {
+                childList: true,
+                subtree: true
+            });
+        };
+
+        window.acSendTrackingEvent('AB_${variationServed}_${defaultTrackingName}_Visit');
     `;
 
     return script;
 }
 
 module.exports = defaultTrackingScript;
-
-
-

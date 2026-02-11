@@ -6,7 +6,7 @@ const trackFormSubmissions = require('./tracking-scripts/trackFormSubmissions');
 const trackElementLink = require('./tracking-scripts/trackElementLink');
 
 const trackingScriptsHandler = (trackingGoals, currentVariation, testData) => {
-    let concatenatedScripts = '';
+    let concatenatedScripts = defaultTrackingScript(testData, parseInt(currentVariation) === 0 ? 'C' : `V${parseInt(currentVariation)}`);
     let variationServed = parseInt(currentVariation) === 0 ? 'C' : `V${parseInt(currentVariation)}`;
 
     for (const goal of trackingGoals) {
@@ -30,8 +30,6 @@ const trackingScriptsHandler = (trackingGoals, currentVariation, testData) => {
             console.error('Unknown tracking goal type:', goal.ac_test_goal_type);
     }
   }
-
-    concatenatedScripts += defaultTrackingScript(testData, variationServed);
 
     return concatenatedScripts;
 };
