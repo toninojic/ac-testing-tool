@@ -12,14 +12,14 @@ const { createClient } = require('redis');
 dotenv.config();
 
 const config = {
-    testCheckerInterval: "*/10 * * * * *",
+    testCheckerInterval: "0 */30 * * * *",
     maximumReqBodySize: '5mb',
     testsMainDataPath: path.join(__dirname, './acTestData'),
     archivedTestsDataPath: path.join(__dirname, './archivedTests'),
     errorLogPath: path.join(__dirname, './error.log'),
     maximumErrorsPerInterval: 20,
-    errorTrackingIntervalDurationInMs: 24 * 60 * 60 * 1000,
-    slackChannelName: "testing-tool",
+    errorTrackingIntervalDurationInMs: 10 * 60 * 1000,
+    slackChannelName: "C08B1E5CT2P",
 };
 
 const corsOptions = {

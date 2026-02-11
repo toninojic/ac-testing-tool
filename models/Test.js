@@ -189,6 +189,139 @@ class Test {
             servedVariationData
         };
     }
+
+    /**
+     * Retruns test which user will demand
+     * 
+     * @param {string} TEST_ID 
+     * @param {string} TEST_V 
+     * @param {string} PREVIEW_WITH_OTHERS 
+     * @returns {Array}
+     */
+    async collectPreviewTests(TEST_ID, TEST_V, PREVIEW_WITH_OTHERS) {
+        let previewTestsArray = [];
+        try {
+            // 1. Try to get activeTests from Redis for the given clientName.
+            const cachedActiveTests = await RedisService.getActiveTests(this.clientName);
+            if (cachedActiveTests) {
+                // For multiple tests
+                if (PREVIEW_WITH_OTHERS === 'true' || PREVIEW_WITH_OTHERS === true) {
+                    for (const [testId, testData] of Object.entries(cachedActiveTests)) {
+                        const formattedTest = await this.prepareAndReturnTestDataPreview(testData, testId, TEST_ID, TEST_V);
+                        if (formattedTest.shouldTestLoad === false) continue;
+                        previewTestsArray.push(formattedTest);
+                    }
+                } else {
+                    // For only one test
+                    if (cachedActiveTests[TEST_ID]) {
+                        const formattedTest = await this.prepareAndReturnTestDataPreview(cachedActiveTests[TEST_ID], TEST_ID, TEST_ID, TEST_V);
+                        if (formattedTest.shouldTestLoad !== false) previewTestsArray.push(formattedTest);
+                    }
+                }
+                return previewTestsArray;
+            }
+
+            
+            // 2. If activeTests are not found in Redis, get them from MongoDB.
+            const db = mongoClient.db('TestingTool');
+            const collection = db.collection(this.clientName);
+            // For multiple tests
+            if (PREVIEW_WITH_OTHERS === 'true' || PREVIEW_WITH_OTHERS === true) {
+                const clientTests = await collection.find({ activeTests: { $exists: true } }).toArray();
+                for (const clientTest of clientTests) {
+                    if (clientTest.activeTests) {
+                        for (const [testId, testData] of Object.entries(clientTest.activeTests)) {
+                            const formattedTest = await this.prepareAndReturnTestDataPreview(testData, testId, TEST_ID, TEST_V);
+                            if (formattedTest.shouldTestLoad === false) continue;
+                            previewTestsArray.push(formattedTest);
+                        }
+                    }
+                }
+            } else {
+                // For only one test
+                const clientTests = await collection.find({ activeTests: { $exists: true } }).toArray();
+                for (const clientTest of clientTests) {
+                    if (clientTest.activeTests && clientTest.activeTests[TEST_ID]) {
+                        const formattedTest = await this.prepareAndReturnTestDataPreview(clientTest.activeTests[TEST_ID], TEST_ID, TEST_ID, TEST_V);
+                        if (formattedTest.shouldTestLoad !== false) previewTestsArray.push(formattedTest);
+                    }
+                }
+            }
+            return previewTestsArray;
+        } catch (error) {
+            errorLogger.error(`Error in collectPreviewTests: ${error}`);
+            return previewTestsArray;
+        }
+    }
+
+    /**
+     * Processes a rest of the tests. If all tests are needed for preview
+     * - Checks user segmentation.
+     * - If the user is a returning user, returns the previously assigned variation.
+     * - If the user is new, assigns a variation using variationHandlerWithProbability.
+     *
+     * @param {Object} testDataObject 
+     * @param {string} testID 
+     * @param {string} previewTestID 
+     * @param {string} previewVariationValue 
+     * @returns {Promise<Object>}
+     */
+    async prepareAndReturnTestDataPreview(testDataObject, testID, previewTestID, previewVariationValue) {
+        const { testData, userSegmentation, trackingGoals, testResources } = testDataObject;
+        const cookieValues = this.actConCookies ? JSON.parse(this.actConCookies) : [];
+
+        const isSegmentedUser = new UserSegmentation(this.req, userSegmentation).isSegmentedUser();
+        if (!isSegmentedUser) {
+            return { shouldTestLoad: false };
+        }
+
+        let variationData;
+        let variationServed;
+        let isReturningUser = false;
+
+        if (testID === previewTestID) {
+            if (parseInt(previewVariationValue) && parseInt(previewVariationValue) !== 0) {
+                variationData = testResources[parseInt(previewVariationValue) - 1];
+            } else {
+                variationData = this.controlVariationName;
+            }
+            variationServed = previewVariationValue;
+        } else {
+            for (const cookie of cookieValues) {
+                const [cookieKey, cookieValue] = cookie.split(':');
+                if (testData.id === cookieKey.trim()) {
+                    let returningUserStatus = cookieValue.trim();
+                    if (returningUserStatus === 'not_allocated') {
+                        return {
+                            id: testData.id,
+                            userAllocated: false,
+                            testDuration: testData.duration,
+                            variationServed: this.controlVariationName
+                        };
+                    }
+                    variationData = this.handleReturningUsers(returningUserStatus, testResources);
+                    variationServed = returningUserStatus;
+                    isReturningUser = true;
+                    break;
+                }
+            }
+            if (!isReturningUser) {
+                const currentVariation = this.variationHandlerWithProbability(testResources);
+                variationData = currentVariation.servedVariationData;
+                variationServed = currentVariation.servedVariationKey;
+            }
+        }
+
+        const trackingScripts = trackingScriptsHandler(trackingGoals, variationServed, testData);
+
+        return {
+            id: testData.id,
+            testDuration: testData.duration,
+            variation: variationData,
+            trackingScripts: trackingScripts,
+            variationServed: variationServed
+        };
+    }
     
     /**
      * Archives expired tests.

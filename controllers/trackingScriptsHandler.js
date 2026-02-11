@@ -5,33 +5,43 @@ const trackClicksOnElementsWhenUrlMatches = require('./tracking-scripts/trackCli
 const trackFormSubmissions = require('./tracking-scripts/trackFormSubmissions');
 const trackElementLink = require('./tracking-scripts/trackElementLink');
 
-const trackingScriptsHandler = (trackingGoals, currentVariation, testData) => {
-    let concatenatedScripts = '';
-    let variationServed = parseInt(currentVariation) === 0 ? 'C' : `V${parseInt(currentVariation)}`;
+const SUPPORTED_TRACKING_SCRIPT_TYPES = ['gtag', 'dataLayer'];
 
-    for (const goal of trackingGoals) {
+const trackingScriptsHandler = (trackingGoals, currentVariation, testData = {}) => {
+    const variationServed = parseInt(currentVariation, 10) === 0 ? 'C' : `V${parseInt(currentVariation, 10)}`;
+
+    const normalizedTrackingScriptType = SUPPORTED_TRACKING_SCRIPT_TYPES.includes(testData.trackingScriptType)
+        ? testData.trackingScriptType
+        : 'gtag';
+
+    const trackingConfig = {
+        ...testData,
+        trackingScriptType: normalizedTrackingScriptType
+    };
+
+    let concatenatedScripts = defaultTrackingScript(trackingConfig, variationServed);
+
+    for (const goal of trackingGoals || []) {
         switch (goal.ac_test_goal_type) {
         case 'track_element_click':
-            concatenatedScripts += trackClicksOnElements(goal, testData, variationServed);
+            concatenatedScripts += trackClicksOnElements(goal, trackingConfig, variationServed);
             break;
         case 'track_element_in_view':
-            concatenatedScripts += trackElementInView(goal, testData, variationServed);
+            concatenatedScripts += trackElementInView(goal, trackingConfig, variationServed);
             break;
         case 'track_form_submits':
-            concatenatedScripts += trackFormSubmissions(goal, testData, variationServed);
+            concatenatedScripts += trackFormSubmissions(goal, trackingConfig, variationServed);
             break;
         case 'track_element_clicks_url_matches':
-            concatenatedScripts += trackClicksOnElementsWhenUrlMatches(goal, testData, variationServed);
+            concatenatedScripts += trackClicksOnElementsWhenUrlMatches(goal, trackingConfig, variationServed);
             break;
         case 'track_element_link':
-            concatenatedScripts += trackElementLink(goal, testData, variationServed);
+            concatenatedScripts += trackElementLink(goal, trackingConfig, variationServed);
             break;
         default:
-            console.error('Unknown tracking goal type:', goal.ac_test_goal_type);
+            break;
+        }
     }
-  }
-
-    concatenatedScripts += defaultTrackingScript(testData, variationServed);
 
     return concatenatedScripts;
 };
