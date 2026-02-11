@@ -1,18 +1,11 @@
-const { router, config } = require('../serverConfig');
+const express = require('express');
+const router = express.Router();
 const { Test } = require('../models/Test');
 const { errorLogger } = require('../util/logger');
+const { requirePluginToken } = require('../middlewares/authMiddleware');
 
-const PLUGIN_TOKEN = process.env.ACCESS_TOKEN;
-
-router.post('/update-test', async (req, res) => {
+router.post('/update-test', requirePluginToken, async (req, res) => {
     const requestBody = req.body;
-    const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
-    const pluginToken = req.headers['x-plugin-token'];
-
-    if (pluginToken !== PLUGIN_TOKEN) {
-        errorLogger.error(`/update-test route access denied due to wrong access token. REQUEST FROM IP ${clientIP}`);
-        return res.status(403).send('Forbidden Access!');
-    }
 
     try {
         Test.updateTest(requestBody);

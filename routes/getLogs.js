@@ -1,20 +1,14 @@
-const { router, path, fs } = require('../serverConfig');
+const express = require('express');
+const { path, fs } = require('../serverConfig');
+const router = express.Router();
 const { errorLogger } = require('../util/logger');
+const { requirePluginToken } = require('../middlewares/authMiddleware');
 const logDirectory = path.join(__dirname, '../logs');
 const logPatterns = {
     access: 'access-',
     error: 'error-'
 };
-const PLUGIN_TOKEN = process.env.ACCESS_TOKEN;
-
-router.get('/get-logs', (req, res) => {
-    const pluginToken = req.headers['x-plugin-token'];
-    const clientIP = req.headers['x-forwarded-for'] || req.ip;
-
-    if (pluginToken !== PLUGIN_TOKEN) {
-        errorLogger.error(`/get-logs route access denied due to wrong access token. REQUEST FROM IP ${clientIP}`);
-        return res.status(403).send('Forbidden Access!');
-    }
+router.get('/get-logs', requirePluginToken, (req, res) => {
 
     let logObject = {
         'access-logs': '',

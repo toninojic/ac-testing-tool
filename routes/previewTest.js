@@ -1,6 +1,8 @@
+const express = require('express');
 const { Test } = require('../models/Test');
-const { router } = require('../serverConfig');
+const router = express.Router();
 const { errorLogger } = require('../util/logger');
+const { getClientIp, getReferrer } = require('../middlewares/requestMetadata');
 
 router.get('/get-test-variation', async (req, res) => {
     try {
@@ -29,8 +31,8 @@ router.get('/get-test-variation', async (req, res) => {
 
         return res.json({ testsArray });
     } catch (error) {
-        const referrer = req.get('Referer') || 'No referrer';
-        const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const referrer = getReferrer(req);
+        const clientIP = getClientIp(req);
         errorLogger.error(`${req.method} REQUEST FROM IP ${clientIP}, URL ${referrer}, ERROR: ${error}`);
         if (!res.headersSent) {
             return res.status(500).json({ error: 'Internal Server Error' });

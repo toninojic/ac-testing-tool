@@ -1,12 +1,13 @@
-const { router } = require('../serverConfig');
+const express = require('express');
+const router = express.Router();
 const { errorLogger } = require('../util/logger');
 const { config } = require('../serverConfig');
 const { slackMess } = require('../util/slackMess');
+const { requireBearerToken } = require('../middlewares/authMiddleware');
+const { getClientIp, getReferrer } = require('../middlewares/requestMetadata');
 
 const errorCountsMap = new Map();
 const exceededLimitSet = new Set();
-
-const API_TOKEN = process.env.API_TOKEN || 'your-secret-token-here';
 
 const resetErrorCount = () => {
     errorCountsMap.clear();
@@ -20,15 +21,7 @@ const errorMessages = {
     2: 'Selector not found'
 };
 
-const authenticateRequest = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || authHeader !== `Bearer ${API_TOKEN}`) {
-        return res.status(403).json({ error: 'Forbidden: Invalid API token' });
-    }
-    next();
-};
-
-router.get('/test-monitor', async (req, res) => {
+router.get('/test-monitor', requireBearerToken, async (req, res) => {
     try {
         const { id, variant, errorcode } = req.query;
 
@@ -51,8 +44,8 @@ router.get('/test-monitor', async (req, res) => {
         errorCountsMap.set(id, errorCount);
         res.json({ message: 'Error recorded', errorCount });
     } catch (error) {
-        const referrer = req.get('Referer') || 'No referrer';
-        const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+        const referrer = getReferrer(req);
+        const clientIP = getClientIp(req);
 
         errorLogger.error(`${req.method} REQUEST FROM IP ${clientIP}, URL ${referrer}, ERROR: ${error}`);
         res.status(500).json({ error: 'Internal server error' });

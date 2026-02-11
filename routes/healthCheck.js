@@ -1,9 +1,11 @@
-const { router} = require('../serverConfig');
+const express = require('express');
+const router = express.Router();
 // My current local Ip needs to be changed to array
 const allowedIP = '::1';
+const { getClientIp } = require('../middlewares/requestMetadata');
 
 const ipFilter = (req, res, next) => {
-    const clientIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
+    const clientIP = getClientIp(req);
     if (clientIP === allowedIP || clientIP === `::ffff:${allowedIP}`) {
         next();
     } else {
